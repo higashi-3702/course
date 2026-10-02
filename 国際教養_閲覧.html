@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>国際教養コース - 来場者表示用モニター</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter & Noto Sans JP -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans JP", sans-serif;
+            background-color: #fafafa;
+            color: #37352f;
+        }
+
+        .notion-card {
+            background-color: #ffffff;
+            border: 1px solid #e9e9e8;
+            box-shadow: 0 4px 20px rgba(15, 15, 15, 0.05), 0 0 0 1px rgba(15, 15, 15, 0.02);
+            border-radius: 16px;
+        }
+
+        .notion-btn {
+            background-color: #ffffff;
+            border: 1px solid #e3e2e0;
+            color: #37352f;
+            transition: all 0.15s ease-in-out;
+            box-shadow: 0 1px 2px rgba(15, 15, 15, 0.04);
+        }
+
+        .notion-btn:hover {
+            background-color: #f7f6f3;
+            border-color: #d3d2d0;
+        }
+
+        .tab-btn {
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background-color: #2eaadc;
+            color: #ffffff;
+            border-color: #2893be;
+            font-weight: 700;
+        }
+
+        /* 題名が1行で納まるレスポンシブフォントサイズ指定 */
+        .single-line-title {
+            font-size: clamp(1.5rem, 5.5vw, 3.5rem);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-4 md:p-12">
+
+    <!-- ヘッダー -->
+    <header class="max-w-5xl w-full mx-auto mt-2 md:mt-4 mb-6">
+        <div class="flex justify-between items-start gap-4">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="text-4xl md:text-6xl" role="img" aria-label="globe">🌍</span>
+                    <span class="px-3 py-1 text-xs md:text-sm font-semibold rounded bg-sky-100 text-sky-800 border border-sky-300 flex items-center gap-1.5 whitespace-nowrap">
+                        <i class="fa-solid fa-desktop"></i> 表示専用モニター
+                    </span>
+                </div>
+                <!-- 1行に収まる題名 -->
+                <h1 class="single-line-title font-black tracking-tight text-[#37352f] mb-3" id="displayEventTitle">
+                    国際教養コース説明会
+                </h1>
+            </div>
+
+            <div class="pt-2 flex gap-2 shrink-0">
+                <a href="./index.html" class="notion-btn px-4 py-2 rounded-xl text-xs md:text-sm font-semibold flex items-center gap-2 no-underline">
+                    <i class="fa-solid fa-house text-neutral-500"></i> トップへ
+                </a>
+            </div>
+        </div>
+
+        <!-- 部（回）切り替えタブ -->
+        <div class="mt-4 bg-[#f1f1ef] p-1.5 rounded-xl flex gap-2 max-w-md">
+            <button id="tabPart1" onclick="switchPart(1)" class="tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm md:text-base font-semibold text-[#37352f]/70 active">
+                第1部 (10:30〜)
+            </button>
+            <button id="tabPart2" onclick="switchPart(2)" class="tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm md:text-base font-semibold text-[#37352f]/70">
+                第2部 (13:30〜)
+            </button>
+        </div>
+        
+        <div class="flex flex-wrap items-center gap-4 text-base md:text-lg text-[#37352f]/70 font-medium pt-3">
+            <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-[#e9e9e8] shadow-sm">
+                <span>⏱️</span>
+                <span>開催時間: <strong class="text-[#37352f] font-bold" id="displayEventTime">10:30-11:15</strong></span>
+            </div>
+            <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-[#e9e9e8] shadow-sm">
+                <span>👥</span>
+                <span>定員: <strong class="text-[#37352f] font-bold" id="displayTotalCount">150</strong>名</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- メイン表示カード -->
+    <main class="max-w-5xl w-full mx-auto flex-1 flex flex-col justify-center my-4">
+        <div class="notion-card p-8 md:p-16 text-center relative overflow-hidden">
+            
+            <p class="text-sm md:text-xl font-bold tracking-widest text-[#37352f]/60 uppercase mb-2">
+                <span id="partTitleHeader">第1部</span> 入場券 残り枚数
+            </p>
+            
+            <!-- 残り枚数の数字 -->
+            <div class="flex items-baseline justify-center gap-3 my-2">
+                <span id="remainingTickets" class="text-8xl sm:text-9xl md:text-[13rem] font-black tracking-tight leading-none text-[#37352f]">
+                    150
+                </span>
+                <span class="text-3xl md:text-5xl font-extrabold text-[#37352f]/50">枚</span>
+            </div>
+
+            <!-- ステータスバー -->
+            <div id="statusBadge" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-base md:text-lg font-bold mt-6 bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>整理券 配布中</span>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- フッター -->
+    <footer class="max-w-5xl w-full mx-auto flex justify-between items-center pt-6 border-t border-[#e9e9e8] text-[#37352f]/50 text-sm">
+        <div class="flex items-center gap-2 font-medium">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <span>リアルタイム自動更新中</span>
+        </div>
+        <div>© 国際教養コース チケット管理システム</div>
+    </footer>
+
+    <script>
+        const STORAGE_KEY = 'kokusai_ticket_app_secure_state_v2';
+
+        let currentPart = 1;
+
+        let state = {
+            activePart: 1,
+            parts: {
+                1: {
+                    eventTitle: "国際教養コース説明会 (第1部)",
+                    eventTime: "10:30-11:15",
+                    totalCapacity: 150,
+                    remaining: 150
+                },
+                2: {
+                    eventTitle: "国際教養コース説明会 (第2部)",
+                    eventTime: "13:30-14:15",
+                    totalCapacity: 150,
+                    remaining: 150
+                }
+            }
+        };
+
+        function loadState() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.parts) {
+                        state = parsed;
+                    }
+                } catch(e) {
+                    console.error("Failed to load state", e);
+                }
+            }
+            updateUI();
+        }
+
+        function switchPart(partNum) {
+            currentPart = partNum;
+            document.getElementById('tabPart1').classList.toggle('active', partNum === 1);
+            document.getElementById('tabPart2').classList.toggle('active', partNum === 2);
+            document.getElementById('partTitleHeader').innerText = `第${partNum}部`;
+            updateUI();
+        }
+
+        function updateUI() {
+            const curData = state.parts[currentPart];
+            document.getElementById('displayEventTitle').innerText = curData.eventTitle;
+            document.getElementById('displayEventTime').innerText = curData.eventTime;
+            document.getElementById('displayTotalCount').innerText = curData.totalCapacity;
+            
+            const rem = Math.max(0, curData.remaining);
+            document.getElementById('remainingTickets').innerText = rem;
+
+            const badge = document.getElementById('statusBadge');
+            if (rem === 0) {
+                badge.className = "inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-base md:text-lg font-bold mt-6 bg-rose-100 text-rose-800 border border-rose-300";
+                badge.innerHTML = `<span class="w-3 h-3 rounded-full bg-rose-500"></span><span>配券終了（満席）</span>`;
+            } else if (rem <= 15) {
+                badge.className = "inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-base md:text-lg font-bold mt-6 bg-amber-100 text-amber-800 border border-amber-300";
+                badge.innerHTML = `<span class="w-3 h-3 rounded-full bg-amber-500 animate-ping"></span><span>残りわずか！</span>`;
+            } else {
+                badge.className = "inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-base md:text-lg font-bold mt-6 bg-emerald-100 text-emerald-800 border border-emerald-300";
+                badge.innerHTML = `<span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span><span>整理券 配布中</span>`;
+            }
+        }
+
+        window.addEventListener('storage', (e) => {
+            if (e.key === STORAGE_KEY) {
+                loadState();
+            }
+        });
+
+        window.onload = function() {
+            loadState();
+            switchPart(1);
+        };
+    </script>
+</body>
+</html>
