@@ -4,101 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>国際教養コース - リアルタイム発券状況 Monitor</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS Client v2 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Google Fonts Inter & Noto Sans JP -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans JP", sans-serif;
-            background-color: #fafafa;
-            color: #37352f;
-        }
-
-        .notion-card {
-            background-color: #ffffff;
-            border: 1px solid #e9e9e8;
-            box-shadow: 0 1px 3px rgba(15, 15, 15, 0.05), 0 0 0 1px rgba(15, 15, 15, 0.02);
-            border-radius: 12px;
-        }
-
-        .notion-btn {
-            background-color: #ffffff;
-            border: 1px solid #e3e2e0;
-            color: #37352f;
-            transition: all 0.15s ease-in-out;
-            box-shadow: 0 1px 2px rgba(15, 15, 15, 0.04);
-        }
-
-        .notion-btn:hover {
-            background-color: #f7f6f3;
-            border-color: #d3d2d0;
-        }
-
-        .tab-btn {
-            transition: all 0.2s ease;
-        }
-
-        .tab-btn.active {
-            background-color: #ffffff;
-            color: #37352f;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-            border-color: #e9e9e8;
-            font-weight: 700;
-        }
-
-        .status-badge-ok {
-            background-color: #e6f4ea;
-            color: #137333;
-            border: 1px solid #ceead6;
-        }
-
-        .status-badge-few {
-            background-color: #fef7e0;
-            color: #b06000;
-            border: 1px solid #feefc3;
-        }
-
-        .status-badge-empty {
-            background-color: #fce8e6;
-            color: #c5221f;
-            border: 1px solid #fad2cf;
-        }
-
-        .single-line-title {
-            font-size: clamp(1.25rem, 5vw, 2.75rem);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .progress-bar-inner {
-            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans JP", sans-serif; background-color: #fafafa; color: #37352f; }
+        .notion-card { background-color: #ffffff; border: 1px solid #e9e9e8; box-shadow: 0 1px 3px rgba(15, 15, 15, 0.05); border-radius: 12px; }
+        .notion-btn { background-color: #ffffff; border: 1px solid #e3e2e0; color: #37352f; transition: all 0.15s ease-in-out; }
+        .notion-btn:hover { background-color: #f7f6f3; }
+        .tab-btn.active { background-color: #ffffff; color: #37352f; box-shadow: 0 2px 4px rgba(0,0,0,0.06); border-color: #e9e9e8; font-weight: 700; }
+        .status-badge-ok { background-color: #e6f4ea; color: #137333; border: 1px solid #ceead6; }
+        .status-badge-few { background-color: #fef7e0; color: #b06000; border: 1px solid #feefc3; }
+        .status-badge-empty { background-color: #fce8e6; color: #c5221f; border: 1px solid #fad2cf; }
+        .single-line-title { font-size: clamp(1.25rem, 5vw, 2.75rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .progress-bar-inner { transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between p-4 md:p-8">
 
-    <!-- ヘッダー -->
     <header class="max-w-4xl w-full mx-auto mt-2 md:mt-4 mb-4">
         <div class="flex justify-between items-start gap-4">
             <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-3 mb-2">
-                    <span class="text-3xl md:text-5xl" role="img" aria-label="globe">🌍</span>
+                    <span class="text-3xl md:text-5xl">🌍</span>
                     <span class="px-2 py-0.5 text-xs font-semibold rounded bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1">
                         <i class="fa-solid fa-desktop"></i> モニター画面 (自動更新中)
                     </span>
                 </div>
-                <h1 class="single-line-title font-extrabold tracking-tight text-[#37352f] mb-3" id="displayEventTitle">
-                    国際教養コース説明会
-                </h1>
+                <h1 class="single-line-title font-extrabold tracking-tight text-[#37352f] mb-3" id="displayEventTitle">国際教養コース説明会</h1>
             </div>
 
             <div class="pt-2 flex flex-wrap gap-2 justify-end shrink-0">
@@ -111,32 +47,23 @@
             </div>
         </div>
 
-        <!-- 部（回）切り替えタブ -->
         <div class="mt-4 bg-[#f1f1ef] p-1.5 rounded-xl flex gap-2 max-w-md">
-            <button id="tabPart1" onclick="switchPart(1)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-medium text-[#37352f]/60 active flex items-center justify-center gap-2">
-                <span>1回目 (第1部)</span>
-            </button>
-            <button id="tabPart2" onclick="switchPart(2)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-medium text-[#37352f]/60 flex items-center justify-center gap-2">
-                <span>2回目 (第2部)</span>
-            </button>
+            <button id="tabPart1" onclick="switchPart(1)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-medium text-[#37352f]/60 active">1回目 (第1部)</button>
+            <button id="tabPart2" onclick="switchPart(2)" class="tab-btn flex-1 py-2 px-4 rounded-lg text-sm font-medium text-[#37352f]/60">2回目 (第2部)</button>
         </div>
 
         <div class="flex flex-wrap items-center gap-3 text-sm text-[#37352f]/70 font-medium pt-3">
             <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-[#e9e9e8] shadow-sm">
-                <span>⏱️</span>
-                <span>時間: <strong class="text-[#37352f] font-semibold" id="displayEventTime">--:--</strong></span>
+                <span>⏱️</span><span>時間: <strong class="text-[#37352f] font-semibold" id="displayEventTime">10:30-11:15</strong></span>
             </div>
             <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-[#e9e9e8] shadow-sm">
-                <span>👥</span>
-                <span>定員: <strong class="text-[#37352f] font-semibold" id="displayTotalCount">--</strong>名</span>
+                <span>👥</span><span>初期定員: <strong class="text-[#37352f] font-semibold" id="displayTotalCount">--</strong>名</span>
             </div>
         </div>
     </header>
 
-    <!-- メインコンテンツカード -->
     <main class="max-w-4xl w-full mx-auto flex-1 flex flex-col justify-center my-2">
         <div class="notion-card p-6 md:p-12 relative overflow-hidden transition-all duration-300">
-            
             <div class="text-center mb-6">
                 <div class="inline-block mb-3">
                     <span id="statusBadge" class="status-badge-ok px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5">
@@ -144,18 +71,13 @@
                         <span>整理券 配布中</span>
                     </span>
                 </div>
-                <p class="text-xs md:text-sm font-semibold tracking-wider text-[#37352f]/60 uppercase mb-2">
-                    現在の残り枚数
-                </p>
+                <p class="text-xs md:text-sm font-semibold tracking-wider text-[#37352f]/60 uppercase mb-2">現在の残り枚数</p>
                 <div class="flex items-baseline justify-center gap-2">
-                    <span id="remainingTickets" class="text-7xl sm:text-8xl md:text-9xl font-extrabold tracking-tight text-[#37352f]">
-                        ---
-                    </span>
+                    <span id="remainingTickets" class="text-7xl sm:text-8xl md:text-9xl font-extrabold tracking-tight text-[#37352f]">---</span>
                     <span class="text-2xl md:text-3xl font-bold text-[#37352f]/50">枚</span>
                 </div>
             </div>
 
-            <!-- プログレスバーエリア -->
             <div class="max-w-xl mx-auto space-y-2">
                 <div class="w-full bg-[#f1f1ef] h-3.5 rounded-full overflow-hidden p-0.5 border border-[#e9e9e8]">
                     <div id="progressBar" class="progress-bar-inner bg-[#2eaadc] h-full rounded-full" style="width: 0%"></div>
@@ -165,62 +87,37 @@
                     <span id="occupancyRate">0% 配布完了</span>
                 </div>
             </div>
-
-            <div class="mt-8 pt-6 border-t border-[#f1f1ef] text-center text-xs text-[#37352f]/50">
-                <p class="flex items-center justify-center gap-1">
-                    <i class="fa-solid fa-rotate text-[#2eaadc]"></i>
-                    情報はリアルタイムで自動更新されています
-                </p>
-            </div>
-
         </div>
     </main>
-
-    <!-- フッター -->
-    <footer class="max-w-4xl w-full mx-auto flex justify-between items-center pt-4 border-t border-[#e9e9e8] text-[#37352f]/60 text-xs">
-        <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span>国際教養コース モニター画面</span>
-        </div>
-    </footer>
 
     <script>
         const SUPABASE_URL = 'https://aaonelfelxfzcwcsaqqw.supabase.co';
         const SUPABASE_KEY = 'sb_publishable__OHmH6f6jAio-k11HnMxIQ_Y6t7Xk8V';
-
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-            auth: { persistSession: false }
-        });
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
 
         let currentPart = 1;
-
         const partConfig = {
-            1: { dbId: 3, eventTitle: "国際教養コース説明会 (第1部)", eventTime: "10:30-11:15", totalCapacity: 150, remaining: 150 },
-            2: { dbId: 4, eventTitle: "国際教養コース説明会 (第2部)", eventTime: "13:30-14:15", totalCapacity: 150, remaining: 150 }
+            1: { dbId: 3, eventTitle: "国際教養コース説明会 (第1部)", eventTime: "10:30-11:15", initialCapacity: 150, remaining: 150 },
+            2: { dbId: 4, eventTitle: "国際教養コース説明会 (第2部)", eventTime: "13:30-14:15", initialCapacity: 150, remaining: 150 }
         };
 
         async function fetchAllData() {
             try {
-                const { data, error } = await supabaseClient
-                    .from('tickets')
-                    .select('*')
-                    .in('id', [3, 4]);
-
+                const { data } = await supabaseClient.from('tickets').select('id, count').in('id', [3, 4]);
                 if (data) {
                     data.forEach(item => {
                         const targetPart = item.id === 3 ? 1 : (item.id === 4 ? 2 : null);
-                        if (targetPart) {
-                            if (item.count !== undefined && item.count !== null) partConfig[targetPart].remaining = item.count;
-                            if (item.capacity) partConfig[targetPart].totalCapacity = item.capacity;
-                            if (item.title) partConfig[targetPart].eventTitle = item.title;
-                            if (item.time) partConfig[targetPart].eventTime = item.time;
+                        if (targetPart && item.count !== undefined) {
+                            partConfig[targetPart].remaining = item.count;
+                            // もしDB初期値が150以外で、初期設定より大きければ初期定員枠を調整
+                            if (item.count > partConfig[targetPart].initialCapacity) {
+                                partConfig[targetPart].initialCapacity = item.count;
+                            }
                         }
                     });
                     updateUI();
                 }
-            } catch (err) {
-                console.error(err);
-            }
+            } catch (err) { console.error(err); }
         }
 
         function switchPart(partNum) {
@@ -234,12 +131,12 @@
             const curData = partConfig[currentPart];
             document.getElementById('displayEventTitle').innerText = curData.eventTitle;
             document.getElementById('displayEventTime').innerText = curData.eventTime;
-            document.getElementById('displayTotalCount').innerText = curData.totalCapacity;
-            document.getElementById('capacityText').innerText = curData.totalCapacity;
+            document.getElementById('displayTotalCount').innerText = curData.initialCapacity;
+            document.getElementById('capacityText').innerText = curData.initialCapacity;
 
-            const remaining = Math.max(0, Math.min(curData.remaining, curData.totalCapacity));
-            const issued = curData.totalCapacity - remaining;
-            const rate = Math.round((issued / curData.totalCapacity) * 100);
+            const remaining = curData.remaining;
+            const issued = Math.max(0, curData.initialCapacity - remaining);
+            const rate = Math.min(100, Math.round((issued / curData.initialCapacity) * 100));
 
             document.getElementById('remainingTickets').innerText = remaining;
             document.getElementById('issuedTickets').innerText = issued;
@@ -247,7 +144,7 @@
             document.getElementById('progressBar').style.width = `${rate}%`;
 
             const badge = document.getElementById('statusBadge');
-            if (remaining === 0) {
+            if (remaining <= 0) {
                 badge.className = "status-badge-empty px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5";
                 badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>満席 (配布終了)</span>`;
             } else if (remaining <= 15) {
@@ -260,24 +157,14 @@
         }
 
         function setupRealtimeSubscription() {
-            supabaseClient
-                .channel('realtime_tickets_monitor')
-                .on('postgres_changes', {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'tickets'
-                }, payload => {
-                    const updatedItem = payload.new;
-                    const targetPart = updatedItem.id === 3 ? 1 : (updatedItem.id === 4 ? 2 : null);
-                    if (targetPart) {
-                        if (updatedItem.count !== undefined) partConfig[targetPart].remaining = updatedItem.count;
-                        if (updatedItem.capacity) partConfig[targetPart].totalCapacity = updatedItem.capacity;
-                        if (updatedItem.title) partConfig[targetPart].eventTitle = updatedItem.title;
-                        if (updatedItem.time) partConfig[targetPart].eventTime = updatedItem.time;
-                        updateUI();
-                    }
-                })
-                .subscribe();
+            supabaseClient.channel('realtime_tickets_monitor').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tickets' }, payload => {
+                const updatedItem = payload.new;
+                const targetPart = updatedItem.id === 3 ? 1 : (updatedItem.id === 4 ? 2 : null);
+                if (targetPart && updatedItem.count !== undefined) {
+                    partConfig[targetPart].remaining = updatedItem.count;
+                    updateUI();
+                }
+            }).subscribe();
         }
 
         window.onload = function() {
