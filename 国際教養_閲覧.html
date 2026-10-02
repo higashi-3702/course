@@ -6,6 +6,8 @@
     <title>国際教養コース - 来場者表示用モニター</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS Client v2 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Google Fonts Inter & Noto Sans JP -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,7 +53,6 @@
             font-weight: 700;
         }
 
-        /* 題名が1行で納まるレスポンシブフォントサイズ指定 */
         .single-line-title {
             font-size: clamp(1.5rem, 5.5vw, 3.5rem);
             white-space: nowrap;
@@ -72,7 +73,6 @@
                         <i class="fa-solid fa-desktop"></i> 表示専用モニター
                     </span>
                 </div>
-                <!-- 1行に収まる題名 -->
                 <h1 class="single-line-title font-black tracking-tight text-[#37352f] mb-3" id="displayEventTitle">
                     国際教養コース説明会
                 </h1>
@@ -118,7 +118,7 @@
             <!-- 残り枚数の数字 -->
             <div class="flex items-baseline justify-center gap-3 my-2">
                 <span id="remainingTickets" class="text-8xl sm:text-9xl md:text-[13rem] font-black tracking-tight leading-none text-[#37352f]">
-                    150
+                    ---
                 </span>
                 <span class="text-3xl md:text-5xl font-extrabold text-[#37352f]/50">枚</span>
             </div>
@@ -135,48 +135,59 @@
     <!-- フッター -->
     <footer class="max-w-5xl w-full mx-auto flex justify-between items-center pt-6 border-t border-[#e9e9e8] text-[#37352f]/50 text-sm">
         <div class="flex items-center gap-2 font-medium">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-            <span>リアルタイム自動更新中</span>
+            <span id="syncDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <span id="syncStatus">リアルタイム自動更新中</span>
         </div>
         <div>© 国際教養コース チケット管理システム</div>
     </footer>
 
     <script>
-        const STORAGE_KEY = 'kokusai_ticket_app_secure_state_v2';
+        const SUPABASE_URL = 'https://aaonelfelxfzcwcsaqqw.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable__OHmH6f6jAio-k11HnMxIQ_Y6t7Xk8V';
+
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            auth: { persistSession: false }
+        });
 
         let currentPart = 1;
 
-        let state = {
-            activePart: 1,
-            parts: {
-                1: {
-                    eventTitle: "国際教養コース説明会 (第1部)",
-                    eventTime: "10:30-11:15",
-                    totalCapacity: 150,
-                    remaining: 150
-                },
-                2: {
-                    eventTitle: "国際教養コース説明会 (第2部)",
-                    eventTime: "13:30-14:15",
-                    totalCapacity: 150,
-                    remaining: 150
-                }
+        // DBのIDとの紐付け (第1部 = ID 3 / 第2部 = ID 4)
+        const partConfig = {
+            1: {
+                dbId: 3,
+                eventTitle: "国際教養コース説明会 (第1部)",
+                eventTime: "10:30-11:15",
+                totalCapacity: 150,
+                remaining: 0
+            },
+            2: {
+                dbId: 4,
+                eventTitle: "国際教養コース説明会 (第2部)",
+                eventTime: "13:30-14:15",
+                totalCapacity: 150,
+                remaining: 0
             }
         };
 
-        function loadState() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    if (parsed.parts) {
-                        state = parsed;
-                    }
-                } catch(e) {
-                    console.error("Failed to load state", e);
+        async function fetchAllData() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('tickets')
+                    .select('id, count')
+                    .in('id', [3, 4]);
+
+                if (data) {
+                    data.forEach(item => {
+                        if (item.id === 3) partConfig[1].remaining = item.count ?? 0;
+                        if (item.id === 4) partConfig[2].remaining = item.count ?? 0;
+                    });
+                    updateUI();
+                } else if (error) {
+                    console.error('取得エラー:', error);
                 }
+            } catch (err) {
+                console.error(err);
             }
-            updateUI();
         }
 
         function switchPart(partNum) {
@@ -188,7 +199,7 @@
         }
 
         function updateUI() {
-            const curData = state.parts[currentPart];
+            const curData = partConfig[currentPart];
             document.getElementById('displayEventTitle').innerText = curData.eventTitle;
             document.getElementById('displayEventTime').innerText = curData.eventTime;
             document.getElementById('displayTotalCount').innerText = curData.totalCapacity;
@@ -209,14 +220,26 @@
             }
         }
 
-        window.addEventListener('storage', (e) => {
-            if (e.key === STORAGE_KEY) {
-                loadState();
-            }
-        });
+        function subscribeRealtime() {
+            supabaseClient
+                .channel('public:tickets:kokusai_monitor')
+                .on('postgres_changes', { 
+                    event: 'UPDATE', 
+                    schema: 'public', 
+                    table: 'tickets'
+                }, (payload) => {
+                    if (payload.new) {
+                        if (payload.new.id === 3) partConfig[1].remaining = payload.new.count ?? 0;
+                        if (payload.new.id === 4) partConfig[2].remaining = payload.new.count ?? 0;
+                        updateUI();
+                    }
+                })
+                .subscribe();
+        }
 
         window.onload = function() {
-            loadState();
+            fetchAllData();
+            subscribeRealtime();
             switchPart(1);
         };
     </script>
